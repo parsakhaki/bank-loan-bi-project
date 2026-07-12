@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>چت‌بات داده‌محور بانک و مدیریت تسهیلات</title>
+<style>
+  :root{--navy:#0f2a4a;--blue:#2E5CB8;--gold:#B8862E;--bg:#f4f6fa;--card:#ffffff;--red:#c0392b;--green:#1e8a5f;}
+  *{box-sizing:border-box;}
+  body{font-family:Tahoma,"Segoe UI",sans-serif; margin:0; background:var(--bg); color:#1c2733;}
+  header{background:linear-gradient(135deg,var(--navy),var(--blue)); color:#fff; padding:18px 24px;}
+  header h1{margin:0 0 4px; font-size:20px;}
+  header p{margin:0; font-size:12px; opacity:.85;}
+  .wrap{max-width:900px; margin:20px auto; display:grid; grid-template-columns:230px 1fr; gap:16px; padding:0 16px;}
+  .side{background:var(--card); border-radius:10px; padding:14px; box-shadow:0 1px 3px rgba(20,30,50,.08); height:fit-content;}
+  .side h3{font-size:13px; color:var(--navy); margin:0 0 8px;}
+  .role-btn{display:block; width:100%; text-align:right; padding:8px 10px; margin-bottom:6px; border:1px solid #dde3ec; border-radius:8px; background:#f8fafc; cursor:pointer; font-family:inherit; font-size:13px;}
+  .role-btn.active{background:var(--blue); color:#fff; border-color:var(--blue);}
+  .scenario-btn{display:block; width:100%; text-align:right; padding:8px 10px; margin-bottom:6px; border:1px solid #eee; border-radius:8px; background:#fff; cursor:pointer; font-family:inherit; font-size:12.5px;}
+  .scenario-btn:hover{background:#eef3fb;}
+  .chat-card{background:var(--card); border-radius:10px; box-shadow:0 1px 3px rgba(20,30,50,.08); display:flex; flex-direction:column; height:560px;}
+  .chat-log{flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:10px;}
+  .msg{max-width:80%; padding:9px 12px; border-radius:12px; font-size:13px; line-height:1.7; white-space:pre-line;}
+  .msg.bot{background:#eef3fb; align-self:flex-start; border-bottom-left-radius:2px;}
+  .msg.user{background:var(--blue); color:#fff; align-self:flex-end; border-bottom-right-radius:2px;}
+  .msg.error{background:#fdeceb; color:var(--red); align-self:flex-start; border:1px solid #f3c9c5;}
+  .msg.success{background:#e8f6ef; color:var(--green); align-self:flex-start; border:1px solid #bfe6d3;}
+  .input-row{display:flex; gap:8px; padding:12px; border-top:1px solid #eee;}
+  .input-row input{flex:1; padding:9px 10px; border:1px solid #cfd8e3; border-radius:8px; font-family:inherit;}
+  .input-row button{padding:9px 16px; border:none; border-radius:8px; background:var(--blue); color:#fff; cursor:pointer; font-family:inherit;}
+  .choices{display:flex; flex-wrap:wrap; gap:6px; padding:0 12px 10px;}
+  .choice-btn{padding:6px 10px; border-radius:16px; border:1px solid var(--blue); background:#fff; color:var(--blue); cursor:pointer; font-size:12px; font-family:inherit;}
+  .choice-btn:hover{background:var(--blue); color:#fff;}
+  footer{text-align:center; padding:14px; color:#8492a6; font-size:11px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>چت‌بات داده‌محور — بانک و مدیریت تسهیلات</h1>
+  <p>دریافت داده مرحله‌ای، اعتبارسنجی فرمت/منطق/تطابق و ثبت شبیه‌سازی‌شده روی دادهٔ فرضی پروژه (این بخش در کلاس تدریس نشده و به‌صورت مستقل طراحی شده است)</p>
+</header>
+<div class="wrap">
+  <div class="side">
+    <h3>۱. انتخاب نقش کاربر</h3>
+    <button class="role-btn active" data-role="customer">کاربر بیرونی (مشتری)</button>
+    <button class="role-btn" data-role="specialist">کارشناس/اپراتور</button>
+    <button class="role-btn" data-role="manager">مدیر</button>
+    <h3 style="margin-top:14px;">۲. انتخاب سناریو</h3>
+    <div id="scenario-list"></div>
+  </div>
+  <div class="chat-card">
+    <div class="chat-log" id="chat-log"></div>
+    <div class="choices" id="choice-row"></div>
+    <div class="input-row">
+      <input id="user-input" type="text" placeholder="پاسخ خود را بنویسید..." />
+      <button id="send-btn">ارسال</button>
+    </div>
+  </div>
+</div>
+<footer>داده‌های استفاده‌شده فرضی هستند. شماره‌های پیگیری تولیدشده در این نشست صرفاً برای دمو است و پس از بستن صفحه ذخیره نمی‌شود.</footer>
+
+<script>
+const DB = {"customers": [{"customer_id": 262, "national_id": 4964570811, "full_name": "رامین ملکی", "phone": 9177248955, "credit_score": 800}, {"customer_id": 133, "national_id": 4252504650, "full_name": "فرهاد خدادادی", "phone": 9297802999, "credit_score": 737}, {"customer_id": 576, "national_id": 8304093560, "full_name": "پریسا رحیمی", "phone": 9274965830, "credit_score": 753}, {"customer_id": 455, "national_id": 7283143895, "full_name": "رامین اسدی", "phone": 9138469488, "credit_score": 480}, {"customer_id": 338, "national_id": 4554178984, "full_name": "کوروش رستمی", "phone": 9268057906, "credit_score": 679}, {"customer_id": 581, "national_id": 8240255629, "full_name": "حمید اکبری", "phone": 9249025640, "credit_score": 436}, {"customer_id": 317, "national_id": 3837784389, "full_name": "ندا حسینی", "phone": 9159950103, "credit_score": 525}, {"customer_id": 440, "national_id": 4618105265, "full_name": "علی ابراهیمی", "phone": 9152960327, "credit_score": 615}, {"customer_id": 54, "national_id": 5641959772, "full_name": "یلدا رستمی", "phone": 9123117143, "credit_score": 581}, {"customer_id": 398, "national_id": 8700464894, "full_name": "شیرین فرجی", "phone": 9252599943, "credit_score": 607}, {"customer_id": 61, "national_id": 2721355673, "full_name": "فرهاد ملکی", "phone": 9331514340, "credit_score": 393}, {"customer_id": 586, "national_id": 3908503113, "full_name": "بابک مرادی", "phone": 9157853897, "credit_score": 449}, {"customer_id": 497, "national_id": 6188787377, "full_name": "ترانه بابایی", "phone": 9162890441, "credit_score": 452}, {"customer_id": 273, "national_id": 5642049890, "full_name": "دانیال قربانی", "phone": 9303966618, "credit_score": 620}, {"customer_id": 279, "national_id": 9798613995, "full_name": "مصطفی خدادادی", "phone": 9312813842, "credit_score": 320}, {"customer_id": 278, "national_id": 5230025371, "full_name": "رامین امینی", "phone": 9331367643, "credit_score": 816}, {"customer_id": 405, "national_id": 2891776000, "full_name": "فرزاد خدادادی", "phone": 9167271672, "credit_score": 459}, {"customer_id": 355, "national_id": 6649672597, "full_name": "شبنم محمدی", "phone": 9254068080, "credit_score": 823}, {"customer_id": 370, "national_id": 7587552692, "full_name": "سامان طاهری", "phone": 9254810582, "credit_score": 391}, {"customer_id": 307, "national_id": 7685540186, "full_name": "سارا صالحی", "phone": 9155278461, "credit_score": 305}, {"customer_id": 244, "national_id": 5501759051, "full_name": "بهروز خدادادی", "phone": 9338040612, "credit_score": 470}, {"customer_id": 539, "national_id": 6268097086, "full_name": "امیر مرادی", "phone": 9163184699, "credit_score": 380}, {"customer_id": 389, "national_id": 2099247629, "full_name": "مصطفی زارعی", "phone": 9172189067, "credit_score": 313}, {"customer_id": 545, "national_id": 9523846861, "full_name": "یلدا صادقی", "phone": 9242850798, "credit_score": 832}, {"customer_id": 98, "national_id": 5092199300, "full_name": "نیما خدادادی", "phone": 9378351320, "credit_score": 335}, {"customer_id": 553, "national_id": 8138636081, "full_name": "بهار خدادادی", "phone": 9265390014, "credit_score": 651}, {"customer_id": 471, "national_id": 4702323796, "full_name": "عرفان نجفی", "phone": 9123433874, "credit_score": 457}, {"customer_id": 423, "national_id": 2940028539, "full_name": "نیما قربانی", "phone": 9134016063, "credit_score": 438}, {"customer_id": 345, "national_id": 6247463262, "full_name": "احسان یوسفی", "phone": 9291633429, "credit_score": 693}, {"customer_id": 552, "national_id": 2404264843, "full_name": "علی موسوی", "phone": 9292616210, "credit_score": 378}, {"customer_id": 546, "national_id": 5648219528, "full_name": "هستی قاسمی", "phone": 9137455555, "credit_score": 590}, {"customer_id": 71, "national_id": 7977267911, "full_name": "الهام بابایی", "phone": 9148377995, "credit_score": 369}, {"customer_id": 540, "national_id": 1182608864, "full_name": "سارا حسینی", "phone": 9119614751, "credit_score": 360}, {"customer_id": 309, "national_id": 5979458346, "full_name": "حمید موسوی", "phone": 9277768215, "credit_score": 394}, {"customer_id": 188, "national_id": 6942989052, "full_name": "امیر اکبری", "phone": 9253906397, "credit_score": 470}, {"customer_id": 599, "national_id": 2095920639, "full_name": "شبنم کاظمی", "phone": 9347692721, "credit_score": 391}, {"customer_id": 494, "national_id": 1346700963, "full_name": "ندا صالحی", "phone": 9152495541, "credit_score": 590}, {"customer_id": 292, "national_id": 6329589780, "full_name": "ترانه موسوی", "phone": 9119504862, "credit_score": 528}, {"customer_id": 431, "national_id": 7781608576, "full_name": "مرتضی اسدی", "phone": 9126021328, "credit_score": 630}, {"customer_id": 194, "national_id": 2838963536, "full_name": "هستی ملکی", "phone": 9354466502, "credit_score": 511}, {"customer_id": 285, "national_id": 6638034087, "full_name": "ترانه محمدی", "phone": 9131769891, "credit_score": 309}, {"customer_id": 500, "national_id": 7785025154, "full_name": "پیمان نجفی", "phone": 9166464086, "credit_score": 535}, {"customer_id": 306, "national_id": 6126033644, "full_name": "پگاه ملکی", "phone": 9152249382, "credit_score": 491}, {"customer_id": 282, "national_id": 8316205130, "full_name": "بهروز زارعی", "phone": 9151661118, "credit_score": 808}, {"customer_id": 541, "national_id": 4240768756, "full_name": "فاطمه حسینی", "phone": 9394446060, "credit_score": 504}, {"customer_id": 205, "national_id": 9883760207, "full_name": "ترانه کریمی", "phone": 9293753418, "credit_score": 750}, {"customer_id": 328, "national_id": 2586712032, "full_name": "کامران شریفی", "phone": 9314469093, "credit_score": 830}, {"customer_id": 14, "national_id": 5211261115, "full_name": "سامان جعفری", "phone": 9194816534, "credit_score": 669}, {"customer_id": 515, "national_id": 5930425078, "full_name": "سارا موسوی", "phone": 9374426849, "credit_score": 833}, {"customer_id": 4, "national_id": 4604460472, "full_name": "مصطفی محمدی", "phone": 9173117636, "credit_score": 784}, {"customer_id": 100, "national_id": 2196963451, "full_name": "الناز کریمی", "phone": 9104121368, "credit_score": 811}, {"customer_id": 501, "national_id": 1947739357, "full_name": "رضا نجفی", "phone": 9289127012, "credit_score": 355}, {"customer_id": 236, "national_id": 1756345332, "full_name": "الناز مرادی", "phone": 9357019382, "credit_score": 328}, {"customer_id": 542, "national_id": 6788913862, "full_name": "حسین کریمی", "phone": 9379399251, "credit_score": 547}, {"customer_id": 559, "national_id": 3954899995, "full_name": "پریسا نجفی", "phone": 9136663891, "credit_score": 473}, {"customer_id": 359, "national_id": 2635881694, "full_name": "لیلا ملکی", "phone": 9353509000, "credit_score": 784}, {"customer_id": 223, "national_id": 3170795726, "full_name": "نسیم فرجی", "phone": 9122044933, "credit_score": 745}, {"customer_id": 53, "national_id": 7534583219, "full_name": "حمید کاظمی", "phone": 9301522621, "credit_score": 362}, {"customer_id": 210, "national_id": 1290050198, "full_name": "رها شریفی", "phone": 9161668183, "credit_score": 361}, {"customer_id": 442, "national_id": 3147716902, "full_name": "سینا خدادادی", "phone": 9209111313, "credit_score": 836}, {"customer_id": 173, "national_id": 7958672456, "full_name": "رضا کریمی", "phone": 9246615941, "credit_score": 740}, {"customer_id": 260, "national_id": 8477300991, "full_name": "مریم صادقی", "phone": 9377273172, "credit_score": 357}, {"customer_id": 51, "national_id": 1749459431, "full_name": "کامران کریمی", "phone": 9141249314, "credit_score": 666}, {"customer_id": 572, "national_id": 6376474657, "full_name": "نازنین رضایی", "phone": 9173051464, "credit_score": 620}, {"customer_id": 203, "national_id": 1039887139, "full_name": "دانیال نجفی", "phone": 9363023227, "credit_score": 732}, {"customer_id": 323, "national_id": 8903212516, "full_name": "هستی فرجی", "phone": 9316562703, "credit_score": 791}, {"customer_id": 418, "national_id": 2606143397, "full_name": "نگار اکبری", "phone": 9258949832, "credit_score": 440}, {"customer_id": 470, "national_id": 3593393772, "full_name": "نوید رحیمی", "phone": 9318493596, "credit_score": 678}, {"customer_id": 31, "national_id": 4710967433, "full_name": "سمیرا صادقی", "phone": 9347961578, "credit_score": 648}, {"customer_id": 354, "national_id": 4345515321, "full_name": "حمید زارعی", "phone": 9392316802, "credit_score": 804}, {"customer_id": 565, "national_id": 4783421979, "full_name": "نیما نوری", "phone": 9374129604, "credit_score": 811}, {"customer_id": 352, "national_id": 9916475897, "full_name": "کیانوش حسینی", "phone": 9256265911, "credit_score": 662}, {"customer_id": 237, "national_id": 9462750778, "full_name": "دانیال جعفری", "phone": 9193945353, "credit_score": 802}, {"customer_id": 116, "national_id": 2239534867, "full_name": "آرش محمدی", "phone": 9268555692, "credit_score": 586}, {"customer_id": 409, "national_id": 9503145548, "full_name": "نوید قربانی", "phone": 9322671072, "credit_score": 623}, {"customer_id": 52, "national_id": 5567946981, "full_name": "فرهاد احمدی", "phone": 9347074006, "credit_score": 825}, {"customer_id": 102, "national_id": 9532273208, "full_name": "پیمان اسدی", "phone": 9322089496, "credit_score": 597}, {"customer_id": 569, "national_id": 4889761307, "full_name": "کوروش حیدری", "phone": 9155575347, "credit_score": 439}, {"customer_id": 171, "national_id": 2635231601, "full_name": "شبنم قربانی", "phone": 9186052144, "credit_score": 574}, {"customer_id": 180, "national_id": 6901798608, "full_name": "الناز اسدی", "phone": 9349396422, "credit_score": 454}], "loan_types": [{"loan_type_id": 1, "type_name": "قرض‌الحسنه ازدواج", "interest_rate": 4.0, "max_amount": 500000000, "max_duration_months": 60, "requires_collateral": "خیر"}, {"loan_type_id": 2, "type_name": "مسکن", "interest_rate": 18.0, "max_amount": 4000000000, "max_duration_months": 240, "requires_collateral": "بله"}, {"loan_type_id": 3, "type_name": "خودرو", "interest_rate": 20.0, "max_amount": 1500000000, "max_duration_months": 60, "requires_collateral": "بله"}, {"loan_type_id": 4, "type_name": "خرد/کارگشایی", "interest_rate": 16.0, "max_amount": 200000000, "max_duration_months": 36, "requires_collateral": "خیر"}, {"loan_type_id": 5, "type_name": "ضروری/درمانی", "interest_rate": 4.0, "max_amount": 100000000, "max_duration_months": 24, "requires_collateral": "خیر"}, {"loan_type_id": 6, "type_name": "تجاری/سرمایه در گردش", "interest_rate": 22.0, "max_amount": 10000000000, "max_duration_months": 48, "requires_collateral": "بله"}], "applications": [{"application_id": 7, "customer_id": 173, "type_name": "تجاری/سرمایه در گردش", "status": "تایید", "requested_amount": 2462622000, "requested_duration": 12, "decision_date": "2025-09-11", "rejection_reason": NaN}, {"application_id": 13, "customer_id": 4, "type_name": "قرض‌الحسنه ازدواج", "status": "در بررسی", "requested_amount": 340567000, "requested_duration": 12, "decision_date": NaN, "rejection_reason": NaN}, {"application_id": 15, "customer_id": 205, "type_name": "خرد/کارگشایی", "status": "تایید", "requested_amount": 22549000, "requested_duration": 12, "decision_date": "2023-07-27", "rejection_reason": NaN}, {"application_id": 18, "customer_id": 260, "type_name": "مسکن", "status": "رد", "requested_amount": 2799989000, "requested_duration": 12, "decision_date": "2023-12-08", "rejection_reason": "مدارک ناقص"}, {"application_id": 25, "customer_id": 236, "type_name": "قرض‌الحسنه ازدواج", "status": "تایید", "requested_amount": 164138000, "requested_duration": 36, "decision_date": "2024-02-14", "rejection_reason": NaN}, {"application_id": 28, "customer_id": 116, "type_name": "تجاری/سرمایه در گردش", "status": "تایید", "requested_amount": 2382883000, "requested_duration": 36, "decision_date": "2026-01-26", "rejection_reason": NaN}, {"application_id": 32, "customer_id": 210, "type_name": "خودرو", "status": "تایید", "requested_amount": 950788000, "requested_duration": 18, "decision_date": "2025-11-13", "rejection_reason": NaN}, {"application_id": 35, "customer_id": 278, "type_name": "خودرو", "status": "در بررسی", "requested_amount": 327561000, "requested_duration": 48, "decision_date": NaN, "rejection_reason": NaN}, {"application_id": 40, "customer_id": 546, "type_name": "مسکن", "status": "تایید", "requested_amount": 3945132000, "requested_duration": 24, "decision_date": "2026-04-01", "rejection_reason": NaN}, {"application_id": 46, "customer_id": 586, "type_name": "ضروری/درمانی", "status": "رد", "requested_amount": 32691000, "requested_duration": 24, "decision_date": "2023-09-08", "rejection_reason": "کمبود وثیقه کافی"}, {"application_id": 82, "customer_id": 279, "type_name": "مسکن", "status": "رد", "requested_amount": 3072997000, "requested_duration": 24, "decision_date": "2025-11-24", "rejection_reason": "مدارک ناقص"}, {"application_id": 89, "customer_id": 409, "type_name": "تجاری/سرمایه در گردش", "status": "تایید", "requested_amount": 6940643000, "requested_duration": 48, "decision_date": "2023-02-19", "rejection_reason": NaN}, {"application_id": 98, "customer_id": 328, "type_name": "تجاری/سرمایه در گردش", "status": "تایید", "requested_amount": 7266982000, "requested_duration": 24, "decision_date": "2025-04-06", "rejection_reason": NaN}, {"application_id": 104, "customer_id": 278, "type_name": "خودرو", "status": "تایید", "requested_amount": 1331257000, "requested_duration": 36, "decision_date": "2024-06-14", "rejection_reason": NaN}, {"application_id": 115, "customer_id": 515, "type_name": "خرد/کارگشایی", "status": "رد", "requested_amount": 57565000, "requested_duration": 36, "decision_date": "2026-06-27", "rejection_reason": "سابقه نکول قبلی"}, {"application_id": 126, "customer_id": 203, "type_name": "مسکن", "status": "تایید", "requested_amount": 3442057000, "requested_duration": 18, "decision_date": "2025-05-19", "rejection_reason": NaN}, {"application_id": 136, "customer_id": 307, "type_name": "مسکن", "status": "رد", "requested_amount": 1741044000, "requested_duration": 12, "decision_date": "2026-06-20", "rejection_reason": "کمبود وثیقه کافی"}, {"application_id": 154, "customer_id": 345, "type_name": "خرد/کارگشایی", "status": "تایید", "requested_amount": 95390000, "requested_duration": 36, "decision_date": "2025-01-16", "rejection_reason": NaN}, {"application_id": 156, "customer_id": 471, "type_name": "خودرو", "status": "رد", "requested_amount": 1174632000, "requested_duration": 12, "decision_date": "2025-02-23", "rejection_reason": "سابقه نکول قبلی"}, {"application_id": 159, "customer_id": 306, "type_name": "قرض‌الحسنه ازدواج", "status": "رد", "requested_amount": 389471000, "requested_duration": 18, "decision_date": "2024-10-19", "rejection_reason": "مدارک ناقص"}, {"application_id": 171, "customer_id": 210, "type_name": "قرض‌الحسنه ازدواج", "status": "تایید", "requested_amount": 198153000, "requested_duration": 24, "decision_date": "2025-03-13", "rejection_reason": NaN}, {"application_id": 178, "customer_id": 540, "type_name": "ضروری/درمانی", "status": "تایید", "requested_amount": 54014000, "requested_duration": 24, "decision_date": "2023-04-23", "rejection_reason": NaN}, {"application_id": 180, "customer_id": 237, "type_name": "ضروری/درمانی", "status": "رد", "requested_amount": 44821000, "requested_duration": 24, "decision_date": "2023-03-03", "rejection_reason": "مدارک ناقص"}, {"application_id": 199, "customer_id": 455, "type_name": "ضروری/درمانی", "status": "تایید", "requested_amount": 62559000, "requested_duration": 24, "decision_date": "2026-05-20", "rejection_reason": NaN}, {"application_id": 226, "customer_id": 236, "type_name": "خرد/کارگشایی", "status": "رد", "requested_amount": 163320000, "requested_duration": 36, "decision_date": "2025-06-02", "rejection_reason": "امتیاز اعتباری پایین"}, {"application_id": 239, "customer_id": 31, "type_name": "قرض‌الحسنه ازدواج", "status": "رد", "requested_amount": 401775000, "requested_duration": 12, "decision_date": "2024-03-06", "rejection_reason": "سابقه نکول قبلی"}, {"application_id": 244, "customer_id": 31, "type_name": "تجاری/سرمایه در گردش", "status": "در بررسی", "requested_amount": 1765303000, "requested_duration": 48, "decision_date": NaN, "rejection_reason": NaN}, {"application_id": 245, "customer_id": 194, "type_name": "خرد/کارگشایی", "status": "تایید", "requested_amount": 174104000, "requested_duration": 12, "decision_date": "2024-07-03", "rejection_reason": NaN}, {"application_id": 253, "customer_id": 262, "type_name": "خرد/کارگشایی", "status": "تایید", "requested_amount": 143960000, "requested_duration": 18, "decision_date": "2024-04-01", "rejection_reason": NaN}, {"application_id": 255, "customer_id": 61, "type_name": "مسکن", "status": "تایید", "requested_amount": 1334405000, "requested_duration": 24, "decision_date": "2025-04-24", "rejection_reason": NaN}, {"application_id": 273, "customer_id": 31, "type_name": "خرد/کارگشایی", "status": "تایید", "requested_amount": 41121000, "requested_duration": 24, "decision_date": "2026-05-02", "rejection_reason": NaN}, {"application_id": 277, "customer_id": 352, "type_name": "قرض‌الحسنه ازدواج", "status": "تایید", "requested_amount": 399435000, "requested_duration": 36, "decision_date": "2023-12-14", "rejection_reason": NaN}, {"application_id": 278, "customer_id": 423, "type_name": "خرد/کارگشایی", "status": "رد", "requested_amount": 64724000, "requested_duration": 24, "decision_date": "2025-04-13", "rejection_reason": "مدارک ناقص"}, {"application_id": 287, "customer_id": 210, "type_name": "خودرو", "status": "رد", "requested_amount": 1304902000, "requested_duration": 60, "decision_date": "2024-05-22", "rejection_reason": "سابقه نکول قبلی"}, {"application_id": 291, "customer_id": 328, "type_name": "ضروری/درمانی", "status": "رد", "requested_amount": 68212000, "requested_duration": 12, "decision_date": "2025-07-05", "rejection_reason": "کمبود وثیقه کافی"}, {"application_id": 294, "customer_id": 405, "type_name": "مسکن", "status": "تایید", "requested_amount": 3401071000, "requested_duration": 60, "decision_date": "2025-09-10", "rejection_reason": NaN}, {"application_id": 295, "customer_id": 545, "type_name": "ضروری/درمانی", "status": "در بررسی", "requested_amount": 63418000, "requested_duration": 24, "decision_date": NaN, "rejection_reason": NaN}, {"application_id": 300, "customer_id": 553, "type_name": "تجاری/سرمایه در گردش", "status": "تایید", "requested_amount": 6955074000, "requested_duration": 48, "decision_date": "2024-05-16", "rejection_reason": NaN}, {"application_id": 313, "customer_id": 455, "type_name": "تجاری/سرمایه در گردش", "status": "رد", "requested_amount": 8347304000, "requested_duration": 12, "decision_date": "2025-06-25", "rejection_reason": "امتیاز اعتباری پایین"}, {"application_id": 314, "customer_id": 102, "type_name": "خودرو", "status": "تایید", "requested_amount": 484153000, "requested_duration": 36, "decision_date": "2024-05-08", "rejection_reason": NaN}, {"application_id": 316, "customer_id": 352, "type_name": "ضروری/درمانی", "status": "تایید", "requested_amount": 43438000, "requested_duration": 24, "decision_date": "2024-10-22", "rejection_reason": NaN}, {"application_id": 318, "customer_id": 188, "type_name": "مسکن", "status": "تایید", "requested_amount": 1806470000, "requested_duration": 36, "decision_date": "2023-07-21", "rejection_reason": NaN}, {"application_id": 329, "customer_id": 279, "type_name": "ضروری/درمانی", "status": "تایید", "requested_amount": 61007000, "requested_duration": 24, "decision_date": "2025-06-27", "rejection_reason": NaN}, {"application_id": 331, "customer_id": 545, "type_name": "خودرو", "status": "تایید", "requested_amount": 900099000, "requested_duration": 18, "decision_date": "2026-03-19", "rejection_reason": NaN}, {"application_id": 333, "customer_id": 4, "type_name": "خرد/کارگشایی", "status": "تایید", "requested_amount": 30174000, "requested_duration": 12, "decision_date": "2023-11-28", "rejection_reason": NaN}, {"application_id": 335, "customer_id": 541, "type_name": "خرد/کارگشایی", "status": "تایید", "requested_amount": 166157000, "requested_duration": 24, "decision_date": "2026-03-15", "rejection_reason": NaN}, {"application_id": 345, "customer_id": 309, "type_name": "مسکن", "status": "رد", "requested_amount": 595198000, "requested_duration": 18, "decision_date": "2025-06-07", "rejection_reason": "مدارک ناقص"}, {"application_id": 354, "customer_id": 244, "type_name": "ضروری/درمانی", "status": "تایید", "requested_amount": 40894000, "requested_duration": 24, "decision_date": "2025-06-16", "rejection_reason": NaN}, {"application_id": 369, "customer_id": 279, "type_name": "تجاری/سرمایه در گردش", "status": "تایید", "requested_amount": 6947118000, "requested_duration": 24, "decision_date": "2025-10-23", "rejection_reason": NaN}, {"application_id": 378, "customer_id": 52, "type_name": "خرد/کارگشایی", "status": "تایید", "requested_amount": 192746000, "requested_duration": 24, "decision_date": "2025-09-29", "rejection_reason": NaN}, {"application_id": 379, "customer_id": 539, "type_name": "خودرو", "status": "تایید", "requested_amount": 456820000, "requested_duration": 36, "decision_date": "2023-03-22", "rejection_reason": NaN}, {"application_id": 395, "customer_id": 102, "type_name": "مسکن", "status": "تایید", "requested_amount": 3839685000, "requested_duration": 18, "decision_date": "2023-04-17", "rejection_reason": NaN}, {"application_id": 403, "customer_id": 328, "type_name": "قرض‌الحسنه ازدواج", "status": "تایید", "requested_amount": 407823000, "requested_duration": 18, "decision_date": "2023-01-13", "rejection_reason": NaN}, {"application_id": 420, "customer_id": 237, "type_name": "ضروری/درمانی", "status": "در بررسی", "requested_amount": 99350000, "requested_duration": 24, "decision_date": NaN, "rejection_reason": NaN}, {"application_id": 421, "customer_id": 260, "type_name": "مسکن", "status": "رد", "requested_amount": 3810805000, "requested_duration": 24, "decision_date": "2026-04-09", "rejection_reason": "نسبت بدهی به درآمد بالا"}, {"application_id": 426, "customer_id": 51, "type_name": "خودرو", "status": "تایید", "requested_amount": 1287617000, "requested_duration": 24, "decision_date": "2025-11-06", "rejection_reason": NaN}, {"application_id": 437, "customer_id": 553, "type_name": "خرد/کارگشایی", "status": "تایید", "requested_amount": 184877000, "requested_duration": 36, "decision_date": "2025-07-29", "rejection_reason": NaN}, {"application_id": 460, "customer_id": 171, "type_name": "قرض‌الحسنه ازدواج", "status": "تایید", "requested_amount": 60938000, "requested_duration": 24, "decision_date": "2024-04-05", "rejection_reason": NaN}, {"application_id": 469, "customer_id": 576, "type_name": "مسکن", "status": "تایید", "requested_amount": 861377000, "requested_duration": 48, "decision_date": "2025-05-27", "rejection_reason": NaN}], "loans": [{"loan_id": 3, "customer_id": 173, "type_name": "تجاری/سرمایه در گردش", "status": "جاری", "remaining_balance": 1502199420.0, "duration_months": 12, "start_date": "2025-09-14", "next_due_date": "2026-07-11", "next_due_amount": 250366570.0, "overdue_installments": 6}, {"loan_id": 8, "customer_id": 205, "type_name": "خرد/کارگشایی", "status": "تسویه‌شده", "remaining_balance": 0.0, "duration_months": 12, "start_date": "2023-07-31", "next_due_date": null, "next_due_amount": null, "overdue_installments": 4}, {"loan_id": 15, "customer_id": 236, "type_name": "قرض‌الحسنه ازدواج", "status": "نکول", "remaining_balance": 66384708.0, "duration_months": 36, "start_date": "2024-02-20", "next_due_date": "2026-07-09", "next_due_amount": 5106516.0, "overdue_installments": 16}, {"loan_id": 18, "customer_id": 116, "type_name": "تجاری/سرمایه در گردش", "status": "معوق", "remaining_balance": 3406198873.0, "duration_months": 36, "start_date": "2026-01-28", "next_due_date": "2026-07-27", "next_due_amount": 109877383.0, "overdue_installments": 0}, {"loan_id": 21, "customer_id": 210, "type_name": "خودرو", "status": "معوق", "remaining_balance": 755348242.0, "duration_months": 18, "start_date": "2025-11-21", "next_due_date": "2026-07-19", "next_due_amount": 68668022.0, "overdue_installments": 2}, {"loan_id": 27, "customer_id": 546, "type_name": "مسکن", "status": "جاری", "remaining_balance": 4694707080.0, "duration_months": 24, "start_date": "2026-04-02", "next_due_date": "2026-07-31", "next_due_amount": 223557480.0, "overdue_installments": 0}, {"loan_id": 56, "customer_id": 409, "type_name": "تجاری/سرمایه در گردش", "status": "نکول", "remaining_balance": 2990260361.0, "duration_months": 48, "start_date": "2023-02-21", "next_due_date": "2026-08-04", "next_due_amount": 271841851.0, "overdue_installments": 16}, {"loan_id": 64, "customer_id": 328, "type_name": "تجاری/سرمایه در گردش", "status": "نکول", "remaining_balance": 6104264880.0, "duration_months": 24, "start_date": "2025-04-09", "next_due_date": "2026-08-02", "next_due_amount": 436018920.0, "overdue_installments": 8}, {"loan_id": 69, "customer_id": 278, "type_name": "خودرو", "status": "جاری", "remaining_balance": 769170714.0, "duration_months": 36, "start_date": "2024-06-15", "next_due_date": "2026-08-04", "next_due_amount": 59166978.0, "overdue_installments": 11}, {"loan_id": 85, "customer_id": 203, "type_name": "مسکن", "status": "معوق", "remaining_balance": 1457137464.0, "duration_months": 18, "start_date": "2025-05-20", "next_due_date": "2026-07-14", "next_due_amount": 242856244.0, "overdue_installments": 3}, {"loan_id": 105, "customer_id": 345, "type_name": "خرد/کارگشایی", "status": "جاری", "remaining_balance": 74510191.0, "duration_months": 36, "start_date": "2025-01-17", "next_due_date": "2026-07-11", "next_due_amount": 3921589.0, "overdue_installments": 5}, {"loan_id": 111, "customer_id": 210, "type_name": "قرض‌الحسنه ازدواج", "status": "نکول", "remaining_balance": 115919505.0, "duration_months": 24, "start_date": "2025-03-22", "next_due_date": "2026-07-15", "next_due_amount": 8916885.0, "overdue_installments": 10}, {"loan_id": 116, "customer_id": 540, "type_name": "ضروری/درمانی", "status": "تسویه‌شده", "remaining_balance": 0.0, "duration_months": 24, "start_date": "2023-04-27", "next_due_date": null, "next_due_amount": null, "overdue_installments": 8}, {"loan_id": 130, "customer_id": 455, "type_name": "ضروری/درمانی", "status": "جاری", "remaining_balance": 64748565.0, "duration_months": 24, "start_date": "2026-05-24", "next_due_date": "2026-07-23", "next_due_amount": 2815155.0, "overdue_installments": 0}, {"loan_id": 156, "customer_id": 194, "type_name": "خرد/کارگشایی", "status": "تسویه‌شده", "remaining_balance": 0.0, "duration_months": 12, "start_date": "2024-07-11", "next_due_date": null, "next_due_amount": null, "overdue_installments": 2}, {"loan_id": 161, "customer_id": 262, "type_name": "خرد/کارگشایی", "status": "تسویه‌شده", "remaining_balance": 0.0, "duration_months": 18, "start_date": "2024-04-04", "next_due_date": null, "next_due_amount": null, "overdue_installments": 4}, {"loan_id": 162, "customer_id": 61, "type_name": "مسکن", "status": "جاری", "remaining_balance": 831779113.0, "duration_months": 24, "start_date": "2025-05-01", "next_due_date": "2026-07-25", "next_due_amount": 75616283.0, "overdue_installments": 4}, {"loan_id": 173, "customer_id": 31, "type_name": "خرد/کارگشایی", "status": "جاری", "remaining_balance": 49756410.0, "duration_months": 24, "start_date": "2026-05-05", "next_due_date": "2026-08-03", "next_due_amount": 2261655.0, "overdue_installments": 0}, {"loan_id": 176, "customer_id": 352, "type_name": "قرض‌الحسنه ازدواج", "status": "جاری", "remaining_balance": 99414936.0, "duration_months": 36, "start_date": "2023-12-17", "next_due_date": "2026-08-03", "next_due_amount": 12426867.0, "overdue_installments": 9}, {"loan_id": 187, "customer_id": 405, "type_name": "مسکن", "status": "جاری", "remaining_balance": 5600430264.0, "duration_months": 60, "start_date": "2025-09-15", "next_due_date": "2026-07-12", "next_due_amount": 107700582.0, "overdue_installments": 4}, {"loan_id": 191, "customer_id": 553, "type_name": "تجاری/سرمایه در گردش", "status": "معوق", "remaining_balance": 7899804885.0, "duration_months": 48, "start_date": "2024-05-20", "next_due_date": "2026-07-09", "next_due_amount": 272407065.0, "overdue_installments": 10}, {"loan_id": 198, "customer_id": 102, "type_name": "خودرو", "status": "نکول", "remaining_balance": 344286576.0, "duration_months": 36, "start_date": "2024-05-16", "next_due_date": "2026-08-04", "next_due_amount": 21517911.0, "overdue_installments": 14}, {"loan_id": 200, "customer_id": 352, "type_name": "ضروری/درمانی", "status": "جاری", "remaining_balance": 13682970.0, "duration_months": 24, "start_date": "2024-10-27", "next_due_date": "2026-07-19", "next_due_amount": 1954710.0, "overdue_installments": 6}, {"loan_id": 201, "customer_id": 188, "type_name": "مسکن", "status": "تسویه‌شده", "remaining_balance": 0.0, "duration_months": 36, "start_date": "2023-07-22", "next_due_date": null, "next_due_amount": null, "overdue_installments": 12}, {"loan_id": 210, "customer_id": 279, "type_name": "ضروری/درمانی", "status": "جاری", "remaining_balance": 32943780.0, "duration_months": 24, "start_date": "2025-06-28", "next_due_date": "2026-07-23", "next_due_amount": 2745315.0, "overdue_installments": 5}, {"loan_id": 211, "customer_id": 545, "type_name": "خودرو", "status": "جاری", "remaining_balance": 1040114400.0, "duration_months": 18, "start_date": "2026-03-29", "next_due_date": "2026-07-27", "next_due_amount": 65007150.0, "overdue_installments": 1}, {"loan_id": 212, "customer_id": 4, "type_name": "خرد/کارگشایی", "status": "تسویه‌شده", "remaining_balance": 0.0, "duration_months": 12, "start_date": "2023-12-03", "next_due_date": null, "next_due_amount": null, "overdue_installments": 4}, {"loan_id": 214, "customer_id": 541, "type_name": "خرد/کارگشایی", "status": "جاری", "remaining_balance": 201049970.0, "duration_months": 24, "start_date": "2026-03-20", "next_due_date": "2026-07-18", "next_due_amount": 9138635.0, "overdue_installments": 2}, {"loan_id": 226, "customer_id": 244, "type_name": "ضروری/درمانی", "status": "جاری", "remaining_balance": 31283910.0, "duration_months": 24, "start_date": "2025-06-22", "next_due_date": "2026-07-17", "next_due_amount": 1840230.0, "overdue_installments": 7}, {"loan_id": 234, "customer_id": 279, "type_name": "تجاری/سرمایه در گردش", "status": "جاری", "remaining_balance": 7502887440.0, "duration_months": 24, "start_date": "2025-10-31", "next_due_date": "2026-07-28", "next_due_amount": 416827080.0, "overdue_installments": 4}, {"loan_id": 242, "customer_id": 52, "type_name": "خرد/کارگشایی", "status": "جاری", "remaining_balance": 159015450.0, "duration_months": 24, "start_date": "2025-10-01", "next_due_date": "2026-07-28", "next_due_amount": 10601030.0, "overdue_installments": 3}, {"loan_id": 243, "customer_id": 539, "type_name": "خودرو", "status": "تسویه‌شده", "remaining_balance": 0.0, "duration_months": 36, "start_date": "2023-03-30", "next_due_date": null, "next_due_amount": null, "overdue_installments": 11}, {"loan_id": 256, "customer_id": 102, "type_name": "مسکن", "status": "تسویه‌شده", "remaining_balance": 0.0, "duration_months": 18, "start_date": "2023-04-27", "next_due_date": null, "next_due_amount": null, "overdue_installments": 5}, {"loan_id": 260, "customer_id": 328, "type_name": "قرض‌الحسنه ازدواج", "status": "تسویه‌شده", "remaining_balance": 0.0, "duration_months": 18, "start_date": "2023-01-23", "next_due_date": null, "next_due_amount": null, "overdue_installments": 9}, {"loan_id": 269, "customer_id": 51, "type_name": "خودرو", "status": "جاری", "remaining_balance": 1201775872.0, "duration_months": 24, "start_date": "2025-11-09", "next_due_date": "2026-08-06", "next_due_amount": 75110992.0, "overdue_installments": 2}, {"loan_id": 276, "customer_id": 553, "type_name": "خرد/کارگشایی", "status": "جاری", "remaining_balance": 205213473.0, "duration_months": 36, "start_date": "2025-07-30", "next_due_date": "2026-07-25", "next_due_amount": 7600499.0, "overdue_installments": 5}, {"loan_id": 292, "customer_id": 171, "type_name": "قرض‌الحسنه ازدواج", "status": "تسویه‌شده", "remaining_balance": 0.0, "duration_months": 24, "start_date": "2024-04-07", "next_due_date": null, "next_due_amount": null, "overdue_installments": 13}, {"loan_id": 300, "customer_id": 576, "type_name": "مسکن", "status": "جاری", "remaining_balance": 1172908342.0, "duration_months": 48, "start_date": "2025-06-05", "next_due_date": "2026-07-30", "next_due_amount": 30866009.0, "overdue_installments": 5}], "today": "2026-07-07"};
+let sessionApplications = [];  // newly created applications this session
+let sessionSeq = 900;
+
+function nid(){ return 'APP-' + (sessionSeq++); }
+
+// ---- Iranian national ID checksum validator ----
+function validNationalId(code){
+  if(!/^\d{10}$/.test(code)) return false;
+  if(/^(\d)\1{9}$/.test(code)) return false;
+  const check = parseInt(code[9]);
+  let sum = 0;
+  for(let i=0;i<9;i++) sum += parseInt(code[i]) * (10-i);
+  const r = sum % 11;
+  return (r<2 && check===r) || (r>=2 && check===(11-r));
+}
+
+function findCustomerByNid(nid){
+  return DB.customers.find(c => String(c.national_id) === String(nid));
+}
+
+// ================= Chat engine =================
+const logEl = document.getElementById('chat-log');
+const choiceRow = document.getElementById('choice-row');
+const inputEl = document.getElementById('user-input');
+
+function addMsg(text, cls){
+  const d = document.createElement('div');
+  d.className = 'msg ' + cls;
+  d.textContent = text;
+  logEl.appendChild(d);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+function botSay(text){ addMsg(text,'bot'); }
+function userSay(text){ addMsg(text,'user'); }
+function errSay(text){ addMsg('⚠ ' + text,'error'); }
+function okSay(text){ addMsg('✔ ' + text,'success'); }
+
+let engine = null; // {steps, index, state, onFinish}
+
+function showChoices(list){
+  choiceRow.innerHTML = '';
+  (list||[]).forEach(opt=>{
+    const b = document.createElement('button');
+    b.className = 'choice-btn';
+    b.textContent = opt;
+    b.onclick = ()=> submitAnswer(opt);
+    choiceRow.appendChild(b);
+  });
+}
+
+function askCurrentStep(){
+  if(!engine) return;
+  const step = engine.steps[engine.index];
+  if(!step){ finishEngine(); return; }
+  botSay(step.prompt(engine.state));
+  showChoices(step.choices ? step.choices(engine.state) : null);
+}
+
+function submitAnswer(raw){
+  if(!engine) return;
+  const step = engine.steps[engine.index];
+  userSay(raw);
+  const result = step.validate(raw, engine.state);
+  if(!result.valid){
+    errSay(result.error);
+    // re-ask same step
+    setTimeout(()=>{ botSay(step.prompt(engine.state)); showChoices(step.choices? step.choices(engine.state):null); }, 150);
+    return;
+  }
+  engine.state[step.key] = result.value;
+  engine.index++;
+  choiceRow.innerHTML='';
+  if(engine.index >= engine.steps.length){ finishEngine(); }
+  else { setTimeout(askCurrentStep, 150); }
+}
+
+function finishEngine(){
+  const fin = engine.finish(engine.state);
+  fin.forEach(line=>{
+    if(line.type==='ok') okSay(line.text);
+    else if(line.type==='err') errSay(line.text);
+    else botSay(line.text);
+  });
+  engine = null;
+  choiceRow.innerHTML = '';
+  botSay('سناریو پایان یافت. می‌توانید سناریوی دیگری را از منوی سمت راست انتخاب کنید.');
+}
+
+document.getElementById('send-btn').onclick = ()=>{
+  const v = inputEl.value.trim();
+  if(!v) return;
+  inputEl.value='';
+  submitAnswer(v);
+};
+inputEl.addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('send-btn').click(); });
+
+// ================= Scenarios =================
+
+function scenarioLoanApply(){
+  botSay('سناریوی «درخواست وام جدید» شروع شد. من داده شما را مرحله‌به‌مرحله دریافت، بررسی و در صورت صحت شبیه‌سازی ثبت می‌کنم.');
+  engine = {
+    index:0, state:{},
+    steps:[
+      { key:'national_id', prompt:()=> 'لطفاً کد ملی ۱۰ رقمی خود را وارد کنید:',
+        validate:(raw)=>{
+          const v = raw.replace(/\D/g,'');
+          if(!validNationalId(v)) return {valid:false, error:'کد ملی نامعتبر است (باید ۱۰ رقم و دارای رقم کنترلی صحیح باشد). دوباره وارد کنید.'};
+          return {valid:true, value:v};
+        }},
+      { key:'loan_type', prompt:()=> 'کدام نوع تسهیلات را می‌خواهید؟ (' + DB.loan_types.map(t=>t.type_name).join(' / ') + ')',
+        choices:()=> DB.loan_types.map(t=>t.type_name),
+        validate:(raw)=>{
+          const t = DB.loan_types.find(x=>x.type_name===raw.trim());
+          if(!t) return {valid:false, error:'این نوع تسهیلات موجود نیست. یکی از گزینه‌های نمایش‌داده‌شده را انتخاب کنید.'};
+          return {valid:true, value:t};
+        }},
+      { key:'amount', prompt:(s)=> `مبلغ درخواستی (ریال) را وارد کنید. سقف مجاز برای ${s.loan_type.type_name}: ${Number(s.loan_type.max_amount).toLocaleString('en-US')} ریال`,
+        validate:(raw, s)=>{
+          const v = Number(raw.replace(/[^0-9.]/g,''));
+          if(!v || v<=0) return {valid:false, error:'مبلغ باید عدد مثبت باشد.'};
+          if(v > s.loan_type.max_amount) return {valid:false, error:'مبلغ درخواستی بیش از سقف مجاز این نوع تسهیلات است. مبلغ کمتری وارد کنید.'};
+          return {valid:true, value:v};
+        }},
+      { key:'duration', prompt:(s)=> `مدت بازپرداخت را به ماه وارد کنید (حداکثر ${s.loan_type.max_duration_months} ماه):`,
+        validate:(raw,s)=>{
+          const v = parseInt(raw);
+          if(!Number.isInteger(v) || v<=0) return {valid:false, error:'مدت باید یک عدد صحیح مثبت (ماه) باشد.'};
+          if(v > s.loan_type.max_duration_months) return {valid:false, error:'مدت وارد‌شده بیش از حداکثر مجاز است.'};
+          return {valid:true, value:v};
+        }},
+      { key:'docs_ready', prompt:(s)=> (s.loan_type.requires_collateral==='بله'
+            ? 'آیا مدارک هویتی، گردش حساب سه‌ماهه و مدرک وثیقه را آماده دارید؟ (بله/خیر)'
+            : 'آیا مدارک هویتی و گردش حساب سه‌ماهه را آماده دارید؟ (بله/خیر)'),
+        choices:()=> ['بله','خیر'],
+        validate:(raw)=>{
+          const v = raw.trim();
+          if(v!=='بله' && v!=='خیر') return {valid:false, error:'لطفاً فقط «بله» یا «خیر» پاسخ دهید.'};
+          if(v==='خیر') return {valid:false, error:'بدون مدارک کامل امکان ثبت اولیه درخواست وجود ندارد. لطفاً مدارک را آماده کرده و مجدداً «بله» پاسخ دهید.'};
+          return {valid:true, value:v};
+        }}
+    ],
+    finish:(s)=>{
+      const cust = findCustomerByNid(s.national_id);
+      const score = cust ? cust.credit_score : 550;
+      const isNew = !cust;
+      let decision, reason='';
+      if(score>=650 && s.amount <= 0.7*s.loan_type.max_amount) decision='تایید اولیه (در انتظار تایید نهایی کارشناس)';
+      else if(score<480){ decision='رد'; reason='امتیاز اعتباری پایین‌تر از حد نصاب'; }
+      else { decision='در بررسی کارشناس اعتبارات'; reason='نیاز به بررسی تکمیلی نسبت بدهی به درآمد'; }
+
+      const track = nid();
+      sessionApplications.push({tracking:track, national_id:s.national_id, type_name:s.loan_type.type_name,
+        amount:s.amount, duration:s.duration, status:decision, reason, isNew});
+
+      const lines = [];
+      lines.push({type:'bot', text:`خلاصه درخواست شما:\nنوع تسهیلات: ${s.loan_type.type_name}\nمبلغ: ${s.amount.toLocaleString('en-US')} ریال\nمدت: ${s.duration} ماه`});
+      if(isNew) lines.push({type:'bot', text:'توجه: کد ملی شما در سوابق مشتریان فعلی بانک یافت نشد؛ به‌عنوان متقاضی جدید ثبت شدید و امتیاز اعتباری اولیه پیش‌فرض برای شما در نظر گرفته شد.'});
+      if(decision==='رد') lines.push({type:'err', text:`نتیجه اولیه: رد درخواست. علت: ${reason}`});
+      else lines.push({type:'ok', text:`نتیجه اولیه: ${decision}. شماره پیگیری شما: ${track}`});
+      lines.push({type:'bot', text:'این شماره پیگیری را برای استعلام بعدی وضعیت نزد خود نگه دارید.'});
+      return lines;
+    }
+  };
+  askCurrentStep();
+}
+
+function scenarioLoanStatus(){
+  botSay('سناریوی «پیگیری وضعیت درخواست وام» شروع شد.');
+  engine = { index:0, state:{},
+    steps:[
+      { key:'track', prompt:()=> 'شماره پیگیری (مثلاً APP-12) یا کد ملی خود را وارد کنید:',
+        validate:(raw)=>{
+          const v = raw.trim();
+          if(!v) return {valid:false, error:'ورودی نمی‌تواند خالی باشد.'};
+          return {valid:true, value:v};
+        }}
+    ],
+    finish:(s)=>{
+      const v = s.track;
+      let found = sessionApplications.find(a=>a.tracking===v);
+      if(found){
+        return [{type:'ok', text:`وضعیت درخواست ${found.tracking}: ${found.status}${found.reason? ' ('+found.reason+')':''}`}];
+      }
+      if(/^APP-\d+$/.test(v)){
+        const appId = parseInt(v.split('-')[1]);
+        const app = DB.applications.find(a=>a.application_id===appId);
+        if(app) return [{type:'ok', text:`وضعیت درخواست ${v}: ${app.status}${app.rejection_reason? ' ('+app.rejection_reason+')':''} — نوع: ${app.type_name}, مبلغ: ${Number(app.requested_amount).toLocaleString('en-US')} ریال`}];
+      }
+      if(validNationalId(v)){
+        const cust = findCustomerByNid(v);
+        if(cust){
+          const apps = DB.applications.filter(a=>a.customer_id===cust.customer_id);
+          if(apps.length) return apps.map(a=>({type:'bot', text:`درخواست شماره APP-${a.application_id}: ${a.status}${a.rejection_reason? ' ('+a.rejection_reason+')':''}`}));
+          return [{type:'err', text:'هیچ درخواستی برای این کد ملی یافت نشد.'}];
+        }
+      }
+      return [{type:'err', text:'موردی با این شماره پیگیری/کد ملی یافت نشد. لطفاً مقدار را بررسی و دوباره تلاش کنید.'}];
+    }
+  };
+  askCurrentStep();
+}
+
+function scenarioLoanBalance(){
+  botSay('سناریوی «استعلام مانده و قسط بعدی وام» شروع شد.');
+  engine = { index:0, state:{},
+    steps:[
+      { key:'national_id', prompt:()=> 'کد ملی خود را وارد کنید:',
+        validate:(raw)=>{
+          const v = raw.replace(/\D/g,'');
+          if(!validNationalId(v)) return {valid:false, error:'کد ملی نامعتبر است.'};
+          return {valid:true, value:v};
+        }}
+    ],
+    finish:(s)=>{
+      const cust = findCustomerByNid(s.national_id);
+      if(!cust) return [{type:'err', text:'مشتری با این کد ملی یافت نشد.'}];
+      const loans = DB.loans.filter(l=>l.customer_id===cust.customer_id);
+      if(!loans.length) return [{type:'bot', text:'شما در حال حاضر هیچ وام فعالی ندارید.'}];
+      return loans.map(l=>({type: l.overdue_installments>0 ? 'err':'ok',
+        text:`وام ${l.type_name} (شناسه ${l.loan_id}) — وضعیت: ${l.status} — مانده: ${Number(l.remaining_balance).toLocaleString('en-US')} ریال — قسط بعدی: ${l.next_due_date||'—'} به مبلغ ${l.next_due_amount? Number(l.next_due_amount).toLocaleString('en-US'):'—'} ریال — اقساط معوق: ${l.overdue_installments}`}));
+    }
+  };
+  askCurrentStep();
+}
+
+function scenarioReviewApplication(){
+  const pending = DB.applications.find(a=>a.status==='در بررسی') || sessionApplications.find(a=>a.status.includes('بررسی'));
+  if(!pending){ botSay('در حال حاضر درخواست در صف بررسی یافت نشد.'); return; }
+  botSay(`سناریوی «بررسی درخواست وام» — درخواست انتخاب‌شده: ${pending.application_id? 'APP-'+pending.application_id : pending.tracking} (نوع: ${pending.type_name}, مبلغ: ${Number(pending.amount||pending.requested_amount).toLocaleString('en-US')} ریال)`);
+  engine = { index:0, state:{pending},
+    steps:[
+      { key:'docs_complete', prompt:()=> 'آیا مدارک متقاضی کامل است؟ (بله/خیر)', choices:()=>['بله','خیر'],
+        validate:(raw)=>{ const v=raw.trim(); if(v!=='بله'&&v!=='خیر') return {valid:false, error:'فقط بله/خیر مجاز است.'}; return {valid:true, value:v}; }},
+      { key:'dti', prompt:()=> 'نسبت بدهی به درآمد متقاضی را به‌صورت اعشاری وارد کنید (مثال: 0.35):',
+        validate:(raw)=>{ const v=parseFloat(raw); if(isNaN(v)||v<0||v>1) return {valid:false, error:'مقدار باید عددی بین ۰ و ۱ باشد.'}; return {valid:true, value:v}; }},
+      { key:'decision', prompt:()=> 'تصمیم نهایی را انتخاب کنید:', choices:()=>['تایید','رد','نیاز به بررسی بیشتر'],
+        validate:(raw)=>{ const opts=['تایید','رد','نیاز به بررسی بیشتر']; if(!opts.includes(raw.trim())) return {valid:false, error:'یکی از گزینه‌های نمایش‌داده‌شده را انتخاب کنید.'}; return {valid:true, value:raw.trim()}; }}
+    ],
+    finish:(s)=>{
+      if(s.docs_complete==='خیر') return [{type:'err', text:'به دلیل نقص مدارک، درخواست تا تکمیل مدارک قابل تصمیم‌گیری نیست.'}];
+      let msg = `تصمیم ثبت شد: ${s.decision} (DTI ثبت‌شده: ${s.dti})`;
+      if(s.decision==='رد' && s.dti>0.5) msg += ' — دلیل پیشنهادی: نسبت بدهی به درآمد بالا';
+      return [{type: s.decision==='تایید'?'ok':'bot', text: msg}];
+    }
+  };
+  askCurrentStep();
+}
+
+function scenarioRegisterCollateral(){
+  botSay('سناریوی «ثبت وثیقه برای وام» شروع شد.');
+  engine = { index:0, state:{},
+    steps:[
+      { key:'loan_id', prompt:()=> 'شناسه وام (Loan ID) را وارد کنید (نمونه شناسه‌های موجود: ' + DB.loans.slice(0,5).map(l=>l.loan_id).join(', ') + ' ...):',
+        validate:(raw)=>{
+          const v = parseInt(raw);
+          const loan = DB.loans.find(l=>l.loan_id===v);
+          if(!loan) return {valid:false, error:'وامی با این شناسه یافت نشد.'};
+          return {valid:true, value:loan};
+        }},
+      { key:'collateral_type', prompt:()=> 'نوع وثیقه را انتخاب کنید:', choices:()=>['ملک مسکونی','سفته','سپرده بانکی','خودرو','ملک تجاری'],
+        validate:(raw)=>{ const opts=['ملک مسکونی','سفته','سپرده بانکی','خودرو','ملک تجاری']; if(!opts.includes(raw.trim())) return {valid:false, error:'یکی از گزینه‌های نمایش‌داده‌شده را انتخاب کنید.'}; return {valid:true, value:raw.trim()}; }},
+      { key:'value', prompt:(s)=> `ارزش کارشناسی وثیقه را به ریال وارد کنید (مانده وام: ${Number(s.loan_id.remaining_balance).toLocaleString('en-US')} ریال):`,
+        validate:(raw,s)=>{ const v=Number(raw.replace(/[^0-9.]/g,'')); if(!v||v<=0) return {valid:false, error:'مقدار باید عدد مثبت باشد.'}; return {valid:true, value:v}; } }
+    ],
+    finish:(s)=>{
+      const ratio = s.value / (s.loan_id.remaining_balance||1);
+      if(ratio < 1.1) return [{type:'err', text:`پوشش وثیقه ناکافی است (نسبت پوشش ${ratio.toFixed(2)}). حداقل نسبت مجاز ۱.۱ است؛ لطفاً وثیقه با ارزش بالاتر ثبت کنید.`}];
+      return [{type:'ok', text:`وثیقه «${s.collateral_type}» با نسبت پوشش ${ratio.toFixed(2)} برای وام ${s.loan_id.loan_id} ثبت (شبیه‌سازی) شد.`}];
+    }
+  };
+  askCurrentStep();
+}
+
+function scenarioManagerReport(){
+  botSay('سناریوی «گزارش خلاصه پرتفوی برای مدیر» شروع شد.');
+  engine = { index:0, state:{},
+    steps:[
+      { key:'threshold', prompt:()=> 'وام‌هایی با چند قسط معوق یا بیشتر را می‌خواهید ببینید؟ (عددی وارد کنید، مثلاً 2):',
+        validate:(raw)=>{ const v=parseInt(raw); if(!Number.isInteger(v)||v<0) return {valid:false, error:'لطفاً یک عدد صحیح نامنفی وارد کنید.'}; return {valid:true, value:v}; } }
+    ],
+    finish:(s)=>{
+      const matches = DB.loans.filter(l=>l.overdue_installments>=s.threshold);
+      const statusCounts = {};
+      DB.loans.forEach(l=> statusCounts[l.status]=(statusCounts[l.status]||0)+1);
+      const lines = [{type:'bot', text:'وضعیت کلی نمونه پرتفوی: ' + Object.entries(statusCounts).map(([k,v])=>`${k}: ${v}`).join(' | ')}];
+      lines.push({type: matches.length? 'err':'ok', text:`تعداد ${matches.length} وام با ${s.threshold} قسط معوق یا بیشتر یافت شد.` + (matches.length? ' شناسه‌ها: ' + matches.slice(0,10).map(l=>l.loan_id).join(', '):'')});
+      return lines;
+    }
+  };
+  askCurrentStep();
+}
+
+// ================= Role/Scenario menu =================
+const SCENARIOS = {
+  customer: [
+    {label:'۱. درخواست وام جدید', fn:scenarioLoanApply},
+    {label:'۲. پیگیری وضعیت درخواست', fn:scenarioLoanStatus},
+    {label:'۳. استعلام مانده و قسط بعدی', fn:scenarioLoanBalance},
+  ],
+  specialist: [
+    {label:'۴. بررسی و تصمیم‌گیری درخواست', fn:scenarioReviewApplication},
+    {label:'۵. ثبت وثیقه برای وام', fn:scenarioRegisterCollateral},
+  ],
+  manager: [
+    {label:'۶. گزارش خلاصه پرتفوی و هشدار معوقات', fn:scenarioManagerReport},
+  ]
+};
+
+function renderScenarioList(role){
+  const box = document.getElementById('scenario-list');
+  box.innerHTML='';
+  SCENARIOS[role].forEach(sc=>{
+    const b = document.createElement('button');
+    b.className='scenario-btn';
+    b.textContent = sc.label;
+    b.onclick = ()=>{ logEl.innerHTML=''; choiceRow.innerHTML=''; engine=null; sc.fn(); };
+    box.appendChild(b);
+  });
+}
+
+document.querySelectorAll('.role-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.role-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    renderScenarioList(btn.dataset.role);
+    logEl.innerHTML=''; choiceRow.innerHTML=''; engine=null;
+    botSay('نقش «' + btn.textContent + '» انتخاب شد. یک سناریو از منو انتخاب کنید.');
+  });
+});
+
+renderScenarioList('customer');
+botSay('به چت‌بات بانک و مدیریت تسهیلات خوش آمدید. لطفاً نقش خود و سپس یک سناریو را انتخاب کنید.');
+</script>
+</body>
+</html>
